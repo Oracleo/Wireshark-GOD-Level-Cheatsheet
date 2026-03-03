@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireshark — God Level Cheatsheet</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Syncopate:wght@400;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #03080f;
+    --panel: #060d18;
+    --panel2: #081020;
+    --border: #0d1f35;
+    --border2: #102540;
+    --blue: #0ea5e9;
+    --teal: #14e8c8;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --violet: #8b5cf6;
+    --green: #22c55e;
+    --pink: #ec4899;
+    --text: #b8cfe0;
+    --muted: #3a5570;
+    --bright: #e2f0ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 10% 0%, rgba(14,165,233,0.06) 0%, transparent 45%),
+      radial-gradient(ellipse at 90% 100%, rgba(20,232,200,0.04) 0%, transparent 45%),
+      repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(14,165,233,0.018) 80px),
+      repeating-linear-gradient(0deg, transparent, transparent 79px, rgba(14,165,233,0.018) 80px);
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border2);
+  }
+  .header-inner {
+    padding: 44px 48px 36px;
+    position: relative;
+    z-index: 2;
+  }
+  .header-glow {
+    position: absolute;
+    top: -60px; left: -60px;
+    width: 400px; height: 250px;
+    background: radial-gradient(ellipse, rgba(14,165,233,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-glow2 {
+    position: absolute;
+    top: 0; right: 0;
+    width: 300px; height: 180px;
+    background: radial-gradient(ellipse, rgba(20,232,200,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.r { background: #ef4444; }
+  .dot.y { background: #f59e0b; }
+  .dot.g { background: #22c55e; }
+  .window-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-left: 8px;
+  }
+  h1 {
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(24px, 4.5vw, 52px);
+    font-weight: 700;
+    color: var(--bright);
+    letter-spacing: 2px;
+    line-height: 1;
+    text-shadow: 0 0 60px rgba(14,165,233,0.35);
+  }
+  h1 .accent { color: var(--teal); }
+  h1 .sub-accent { color: var(--blue); }
+  .header-tagline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    letter-spacing: 3px;
+  }
+  .header-tagline span { color: var(--blue); }
+  .header-pills {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 5px 14px;
+    border: 1px solid;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .pill.blue { border-color: rgba(14,165,233,0.5); color: var(--blue); background: rgba(14,165,233,0.06); }
+  .pill.teal { border-color: rgba(20,232,200,0.5); color: var(--teal); background: rgba(20,232,200,0.06); }
+  .pill.amber { border-color: rgba(245,158,11,0.5); color: var(--amber); background: rgba(245,158,11,0.06); }
+
+  /* PACKET ANIMATION BAR */
+  .packet-bar {
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, var(--blue) 20%, var(--teal) 50%, var(--blue) 80%, transparent 100%);
+    background-size: 200% 100%;
+    animation: packetFlow 3s linear infinite;
+  }
+  @keyframes packetFlow {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* SEARCH */
+  .search-wrap {
+    padding: 16px 48px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(6,13,24,0.8);
+  }
+  .search-prompt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--teal);
+    white-space: nowrap;
+  }
+  #searchInput {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--teal);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    flex: 1;
+    caret-color: var(--teal);
+  }
+  #searchInput::placeholder { color: var(--muted); }
+  .search-hint {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border2);
+    padding: 0 48px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--panel);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 15px 18px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    user-select: none;
+    text-transform: uppercase;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+  /* MAIN CONTENT */
+  .content { padding: 40px 48px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .sec-title {
+    font-family: 'Syncopate', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--bright);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .sec-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* CALLOUT BOXES */
+  .tip-box {
+    border: 1px solid rgba(20,232,200,0.2);
+    border-left: 3px solid var(--teal);
+    background: rgba(20,232,200,0.04);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .tip-box .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    margin-bottom: 6px;
+  }
+  .interview-box {
+    border: 1px solid rgba(245,158,11,0.2);
+    border-left: 3px solid var(--amber);
+    background: rgba(245,158,11,0.04);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .interview-box .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .warn-box {
+    border: 1px solid rgba(239,68,68,0.2);
+    border-left: 3px solid var(--red);
+    background: rgba(239,68,68,0.04);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .warn-box .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border2);
+    margin-bottom: 40px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr {
+    background: rgba(14,165,233,0.07);
+    border-bottom: 1px solid var(--border2);
+  }
+  th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--blue);
+    padding: 13px 18px;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(13,31,53,0.7);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(14,165,233,0.03); }
+  td { padding: 13px 18px; vertical-align: top; line-height: 1.55; }
+
+  td.cmd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--teal);
+    white-space: nowrap;
+    min-width: 180px;
+  }
+  td.filter {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-width: 280px;
+  }
+  td.example {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #7dd3fc;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-width: 260px;
+  }
+  td.job {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 300;
+    max-width: 340px;
+    line-height: 1.6;
+  }
+  td.job strong { color: var(--teal); font-weight: 600; }
+
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    padding: 2px 7px;
+    letter-spacing: 1.5px;
+    margin-bottom: 5px;
+    border-radius: 1px;
+    text-transform: uppercase;
+  }
+  .b-critical { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .b-soc { background: rgba(14,165,233,0.1); color: var(--blue); border: 1px solid rgba(14,165,233,0.3); }
+  .b-forensic { background: rgba(139,92,246,0.1); color: var(--violet); border: 1px solid rgba(139,92,246,0.3); }
+  .b-recon { background: rgba(20,232,200,0.1); color: var(--teal); border: 1px solid rgba(20,232,200,0.3); }
+  .b-pro { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+  .b-attack { background: rgba(236,72,153,0.1); color: var(--pink); border: 1px solid rgba(236,72,153,0.3); }
+
+  /* QUICK GRID */
+  .qgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .qcard {
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    padding: 20px;
+  }
+  .qcard-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--blue);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .qi {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(13,31,53,0.5);
+    gap: 12px;
+  }
+  .qi:last-child { border-bottom: none; }
+  .qi-cmd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .qi-desc { font-size: 12px; color: var(--muted); text-align: right; }
+
+  /* PROTOCOL COLOR KEY */
+  .proto-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .proto-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 6px 14px;
+    letter-spacing: 1px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .proto-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  tr.hidden { display: none; }
+
+  /* FOOTER */
+  footer {
+    padding: 28px 48px;
+    border-top: 1px solid var(--border2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+  }
+  footer span { color: var(--teal); }
+
+  @media (max-width: 768px) {
+    .header-inner, .content, .search-wrap { padding-left: 20px; padding-right: 20px; }
+    .tabs { padding: 0 20px; }
+    h1 { font-size: 26px; }
+    footer { padding: 20px; flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-glow"></div>
+  <div class="header-glow2"></div>
+  <div class="header-inner">
+    <div class="top-bar">
+      <div class="dot r"></div>
+      <div class="dot y"></div>
+      <div class="dot g"></div>
+      <span class="window-title">// PACKET_CAPTURE_REFERENCE — SESSION_ACTIVE</span>
+    </div>
+    <h1>WIRE<span class="accent">SHARK</span></h1>
+    <div class="header-tagline">GOD LEVEL CHEATSHEET — <span>SOC · FORENSICS · PACKET ANALYSIS · INTERVIEWS</span></div>
+    <div class="header-pills">
+      <span class="pill blue">DISPLAY FILTERS</span>
+      <span class="pill teal">CAPTURE FILTERS</span>
+      <span class="pill amber">PROTOCOL ANALYSIS</span>
+    </div>
+  </div>
+  <div class="packet-bar"></div>
+</header>
+
+<div class="search-wrap">
+  <span class="search-prompt">filter&gt;</span>
+  <input type="text" id="searchInput" placeholder="search filters, protocols, attacks... e.g. 'dns' or 'http'" oninput="filterAll()" />
+  <span class="search-hint">SEARCHING ALL TABS</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview',this)">OVERVIEW</div>
+  <div class="tab" onclick="showTab('capture',this)">CAPTURE FILTERS</div>
+  <div class="tab" onclick="showTab('display',this)">DISPLAY FILTERS</div>
+  <div class="tab" onclick="showTab('protocols',this)">PROTOCOLS</div>
+  <div class="tab" onclick="showTab('tshark',this)">TSHARK CLI</div>
+  <div class="tab" onclick="showTab('attacks',this)">ATTACK DETECTION</div>
+  <div class="tab" onclick="showTab('forensics',this)">FORENSICS</div>
+  <div class="tab" onclick="showTab('shortcuts',this)">SHORTCUTS</div>
+  <div class="tab" onclick="showTab('interview',this)">🎯 INTERVIEW</div>
+</div>
+
+<div class="content">
+
+  <!-- OVERVIEW -->
+  <div id="section-overview" class="section active">
+    <div class="sec-title">MASTER REFERENCE</div>
+    <div class="sec-desc">Wireshark is the world's most used network protocol analyzer. In SOC and forensics roles, you'll use it to investigate incidents, analyze malware C2 traffic, reconstruct attacks, and extract artefacts from PCAPs.</div>
+
+    <div class="tip-box">
+      <div class="label">// GURU TIP — CAPTURE vs DISPLAY FILTERS</div>
+      This is the #1 confusion point. <strong style="color:var(--teal)">Capture filters (BPF syntax)</strong> decide what gets recorded — set before capture, cannot be changed. <strong style="color:var(--amber)">Display filters (Wireshark syntax)</strong> decide what you see in the already-captured data — can be changed any time. Different syntax entirely. Know both cold for interviews.
+    </div>
+
+    <div class="qgrid">
+      <div class="qcard">
+        <div class="qcard-title">ESSENTIAL DISPLAY FILTERS</div>
+        <div class="qi"><span class="qi-cmd">http</span><span class="qi-desc">All HTTP traffic</span></div>
+        <div class="qi"><span class="qi-cmd">dns</span><span class="qi-desc">All DNS queries/responses</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.port == 443</span><span class="qi-desc">HTTPS traffic</span></div>
+        <div class="qi"><span class="qi-cmd">ip.addr == 1.2.3.4</span><span class="qi-desc">All traffic to/from IP</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.flags.syn == 1</span><span class="qi-desc">SYN packets only</span></div>
+        <div class="qi"><span class="qi-cmd">frame contains "password"</span><span class="qi-desc">Keyword in any frame</span></div>
+        <div class="qi"><span class="qi-cmd">!(arp or dns or icmp)</span><span class="qi-desc">Exclude noise</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">CAPTURE FILTER SYNTAX (BPF)</div>
+        <div class="qi"><span class="qi-cmd">host 192.168.1.1</span><span class="qi-desc">Traffic to/from host</span></div>
+        <div class="qi"><span class="qi-cmd">port 80</span><span class="qi-desc">HTTP traffic only</span></div>
+        <div class="qi"><span class="qi-cmd">net 192.168.1.0/24</span><span class="qi-desc">Entire subnet</span></div>
+        <div class="qi"><span class="qi-cmd">tcp</span><span class="qi-desc">TCP only</span></div>
+        <div class="qi"><span class="qi-cmd">not port 22</span><span class="qi-desc">Exclude SSH</span></div>
+        <div class="qi"><span class="qi-cmd">src host 10.0.0.5</span><span class="qi-desc">Source IP only</span></div>
+        <div class="qi"><span class="qi-cmd">port 80 or port 443</span><span class="qi-desc">HTTP + HTTPS</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">TCP FLAG FILTERS</div>
+        <div class="qi"><span class="qi-cmd">tcp.flags.syn==1 && tcp.flags.ack==0</span><span class="qi-desc">SYN only (new connections)</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.flags.reset==1</span><span class="qi-desc">RST (connection resets)</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.flags.fin==1</span><span class="qi-desc">FIN (connection close)</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.flags==0x002</span><span class="qi-desc">SYN scan detection</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.flags==0x000</span><span class="qi-desc">NULL scan packets</span></div>
+        <div class="qi"><span class="qi-cmd">tcp.flags==0x029</span><span class="qi-desc">Xmas scan packets</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">OPERATORS (DISPLAY FILTERS)</div>
+        <div class="qi"><span class="qi-cmd">==  !=</span><span class="qi-desc">Equals / not equals</span></div>
+        <div class="qi"><span class="qi-cmd">&gt;  &lt;  &gt;=  &lt;=</span><span class="qi-desc">Comparison</span></div>
+        <div class="qi"><span class="qi-cmd">&amp;&amp;  and</span><span class="qi-desc">Logical AND</span></div>
+        <div class="qi"><span class="qi-cmd">||  or</span><span class="qi-desc">Logical OR</span></div>
+        <div class="qi"><span class="qi-cmd">!  not</span><span class="qi-desc">Logical NOT</span></div>
+        <div class="qi"><span class="qi-cmd">contains</span><span class="qi-desc">Byte/string search</span></div>
+        <div class="qi"><span class="qi-cmd">matches</span><span class="qi-desc">Regex match</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">PROTOCOL COLORS (DEFAULT)</div>
+        <div class="qi"><span class="qi-cmd" style="color:#7dd3fc">■ Light Blue</span><span class="qi-desc">UDP traffic</span></div>
+        <div class="qi"><span class="qi-cmd" style="color:#86efac">■ Light Green</span><span class="qi-desc">TCP traffic</span></div>
+        <div class="qi"><span class="qi-cmd" style="color:#fca5a5">■ Light Red</span><span class="qi-desc">TCP errors / RST</span></div>
+        <div class="qi"><span class="qi-cmd" style="color:#fde68a">■ Yellow</span><span class="qi-desc">ARP / routing</span></div>
+        <div class="qi"><span class="qi-cmd" style="color:#d8b4fe">■ Purple</span><span class="qi-desc">ICMP</span></div>
+        <div class="qi"><span class="qi-cmd" style="color:#fb923c">■ Orange</span><span class="qi-desc">HTTP / application</span></div>
+        <div class="qi"><span class="qi-cmd" style="color:#f9fafb">■ White</span><span class="qi-desc">Other protocols</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">KEY MENU PATHS</div>
+        <div class="qi"><span class="qi-cmd">Statistics → Conversations</span><span class="qi-desc">Top talkers</span></div>
+        <div class="qi"><span class="qi-cmd">Statistics → Protocol Hierarchy</span><span class="qi-desc">Traffic breakdown</span></div>
+        <div class="qi"><span class="qi-cmd">File → Export Objects</span><span class="qi-desc">Extract files</span></div>
+        <div class="qi"><span class="qi-cmd">Analyze → Follow Stream</span><span class="qi-desc">Reconstruct session</span></div>
+        <div class="qi"><span class="qi-cmd">Edit → Find Packet</span><span class="qi-desc">Search content</span></div>
+        <div class="qi"><span class="qi-cmd">Statistics → IO Graph</span><span class="qi-desc">Traffic over time</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAPTURE FILTERS -->
+  <div id="section-capture" class="section">
+    <div class="sec-title">CAPTURE FILTERS (BPF)</div>
+    <div class="sec-desc">Berkeley Packet Filter syntax. Set BEFORE starting capture. These run in the kernel — very fast, but you can't change them mid-capture. Use to reduce file size on busy networks.</div>
+    <div class="warn-box">
+      <div class="label">// CRITICAL DIFFERENCE</div>
+      Capture filters use <strong style="color:var(--red)">BPF syntax</strong> — not Wireshark display filter syntax. <code style="color:var(--amber)">host</code>, <code style="color:var(--amber)">port</code>, <code style="color:var(--amber)">net</code>, <code style="color:var(--amber)">src</code>, <code style="color:var(--amber)">dst</code>. If you type a display filter here it will fail silently or error. This trips up candidates constantly.
+    </div>
+    <div class="table-wrap">
+      <table id="table-capture">
+        <thead><tr><th>FILTER</th><th>SYNTAX</th><th>EXAMPLE</th><th>PURPOSE</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd">host</td>
+            <td class="filter">host [IP]</td>
+            <td class="example">host 192.168.1.100</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Capture all traffic to OR from a specific IP address. Most common capture filter. Use to focus on a single endpoint during incident investigation.</td>
+          </tr>
+          <tr>
+            <td class="cmd">src host</td>
+            <td class="filter">src host [IP]</td>
+            <td class="example">src host 10.0.0.5</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Only capture traffic <strong>originating from</strong> a specific IP. Use when investigating exfiltration — you only care about outbound data from a suspected compromised host.</td>
+          </tr>
+          <tr>
+            <td class="cmd">dst host</td>
+            <td class="filter">dst host [IP]</td>
+            <td class="example">dst host 8.8.8.8</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Only capture traffic <strong>destined for</strong> a specific IP. Use to monitor all traffic hitting a specific server or external IP flagged as C2.</td>
+          </tr>
+          <tr>
+            <td class="cmd">net</td>
+            <td class="filter">net [network/mask]</td>
+            <td class="example">net 192.168.0.0/16</td>
+            <td class="job"><span class="badge b-recon">RECON</span><br>Capture entire subnet. Use for LAN-wide monitoring. Can specify source/dest with <code style="color:var(--amber)">src net</code> or <code style="color:var(--amber)">dst net</code>.</td>
+          </tr>
+          <tr>
+            <td class="cmd">port</td>
+            <td class="filter">port [number]</td>
+            <td class="example">port 443
+port 22</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Capture traffic on a specific port (src or dst). Essential for service-specific monitoring. Works with TCP and UDP.</td>
+          </tr>
+          <tr>
+            <td class="cmd">portrange</td>
+            <td class="filter">portrange [start-end]</td>
+            <td class="example">portrange 1-1024</td>
+            <td class="job">Capture traffic across a range of ports. Useful for monitoring all privileged ports or a custom service range.</td>
+          </tr>
+          <tr>
+            <td class="cmd">tcp / udp / icmp</td>
+            <td class="filter">tcp
+udp
+icmp</td>
+            <td class="example">tcp
+udp and port 53</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Filter by protocol layer. Combine with other filters using <code style="color:var(--amber)">and</code>, <code style="color:var(--amber)">or</code>, <code style="color:var(--amber)">not</code>.</td>
+          </tr>
+          <tr>
+            <td class="cmd">not / !</td>
+            <td class="filter">not [filter]</td>
+            <td class="example">not port 22
+not broadcast</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Exclude traffic. Critical for reducing noise — exclude SSH, ARP broadcasts, DNS to isolate interesting traffic on busy networks.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ether host</td>
+            <td class="filter">ether host [MAC]</td>
+            <td class="example">ether host aa:bb:cc:dd:ee:ff</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Filter by MAC address (Layer 2). Use when you know the physical device but not its IP (DHCP environments), or when tracking spoofed MACs.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Compound AND/OR</td>
+            <td class="filter">host [IP] and port [port]
+src net [net] and not port 22</td>
+            <td class="example">host 10.0.0.5 and port 80
+not (port 22 or port 53)</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Chain multiple conditions. Use parentheses for complex logic. The <code style="color:var(--amber)">not (port 22 or port 53)</code> pattern is gold for cutting SSH and DNS noise in captures.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DISPLAY FILTERS -->
+  <div id="section-display" class="section">
+    <div class="sec-title">DISPLAY FILTERS</div>
+    <div class="sec-desc">Wireshark's own filter syntax. Applied to already-captured data. Rich, protocol-aware — you can filter on any field in any protocol. The core skill for PCAP analysis.</div>
+    <div class="tip-box">
+      <div class="label">// GURU TIP</div>
+      Click any field value in the packet details pane → right-click → <strong style="color:var(--teal)">"Apply as Filter"</strong>. Wireshark writes the filter for you. This is how pros build complex filters fast without memorizing every field name.
+    </div>
+    <div class="table-wrap">
+      <table id="table-display">
+        <thead><tr><th>FILTER</th><th>SYNTAX</th><th>EXAMPLE</th><th>PURPOSE</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd">ip.addr</td>
+            <td class="filter">ip.addr == [IP]</td>
+            <td class="example">ip.addr == 192.168.1.5
+ip.addr == 10.0.0.0/8</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Show all traffic involving an IP (either direction). Accepts CIDR notation for subnets. Your most-used filter when investigating a specific host.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ip.src / ip.dst</td>
+            <td class="filter">ip.src == [IP]
+ip.dst == [IP]</td>
+            <td class="example">ip.src == 192.168.1.5
+ip.dst == 8.8.8.8</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Directional IP filters. <strong>ip.src</strong> for outbound from a host (exfiltration hunting), <strong>ip.dst</strong> for inbound to a server (attack traffic).</td>
+          </tr>
+          <tr>
+            <td class="cmd">tcp.port / udp.port</td>
+            <td class="filter">tcp.port == [port]</td>
+            <td class="example">tcp.port == 4444
+tcp.port == 80 || tcp.port == 443</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Filter by port (either src or dst). Port 4444 is classic Metasploit default shell. Unusual ports in display filters are a key threat hunting technique.</td>
+          </tr>
+          <tr>
+            <td class="cmd">http.request.method</td>
+            <td class="filter">http.request.method == "[METHOD]"</td>
+            <td class="example">http.request.method == "POST"
+http.request.method == "GET"</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Filter HTTP by method. POST requests often carry credentials or exfiltrated data. Filter POST + large content-length to find data exfil.</td>
+          </tr>
+          <tr>
+            <td class="cmd">http.request.uri</td>
+            <td class="filter">http.request.uri contains "[string]"</td>
+            <td class="example">http.request.uri contains "admin"
+http.request.uri contains "cmd="</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>Search HTTP request paths. Hunting for web attacks — <code style="color:var(--amber)">"cmd="</code>, <code style="color:var(--amber)">"exec"</code>, <code style="color:var(--amber)">"passwd"</code>, <code style="color:var(--amber)">".php?id="</code> — classic web shell and SQLi indicators.</td>
+          </tr>
+          <tr>
+            <td class="cmd">http.response.code</td>
+            <td class="filter">http.response.code == [code]</td>
+            <td class="example">http.response.code == 200
+http.response.code == 401
+http.response.code >= 400</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Filter by HTTP status. Burst of 401s = brute force. Many 404s = directory scanning. 200 after many 401s = successful brute force. Classic SOC pattern.</td>
+          </tr>
+          <tr>
+            <td class="cmd">dns.qry.name</td>
+            <td class="filter">dns.qry.name contains "[string]"
+dns.qry.name matches "[regex]"</td>
+            <td class="example">dns.qry.name contains "evil.com"
+dns.qry.name matches "^[a-z]{20,}"</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><span class="badge b-soc">SOC</span><br>Filter DNS queries by domain name. Regex match for long random subdomains = DNS tunneling detection. Key IOC hunting technique.</td>
+          </tr>
+          <tr>
+            <td class="cmd">frame contains</td>
+            <td class="filter">frame contains "[string]"</td>
+            <td class="example">frame contains "password"
+frame contains "Authorization"
+frame contains "flag{"</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><span class="badge b-forensic">FORENSIC</span><br>Search raw bytes of entire frame for a string. Slow on large PCAPs but finds credentials, tokens, flags in any protocol. Gold for CTF and credential hunting.</td>
+          </tr>
+          <tr>
+            <td class="cmd">tcp.stream</td>
+            <td class="filter">tcp.stream == [N]</td>
+            <td class="example">tcp.stream == 0
+tcp.stream == 14</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Isolate a specific TCP conversation by stream index. Right-click any TCP packet → Follow → TCP Stream to see the stream number. Essential for session reconstruction.</td>
+          </tr>
+          <tr>
+            <td class="cmd">tcp.len</td>
+            <td class="filter">tcp.len > [bytes]</td>
+            <td class="example">tcp.len > 0
+tcp.len > 1000</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Filter by TCP payload size. <code style="color:var(--amber)">tcp.len > 0</code> removes ACK-only packets — dramatically cleans up session analysis. Large payload filters spot bulk data transfers.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ip.ttl</td>
+            <td class="filter">ip.ttl < [value]</td>
+            <td class="example">ip.ttl < 10
+ip.ttl == 64</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Filter by Time-To-Live. Low TTL packets may indicate traceroute or spoofed packets. Known OS TTL values: Linux=64, Windows=128, Cisco=255.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Negate/Combine</td>
+            <td class="filter">!(filter) && (filter)
+filter1 || filter2</td>
+            <td class="example">!(arp || dns || icmp) && ip
+ip.addr==10.0.0.5 && tcp.port==80</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Combine and negate filters. The <code style="color:var(--amber)">!(arp||dns||icmp)</code> pattern is the pro move for clearing noise and seeing only meaningful traffic in a busy capture.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PROTOCOLS -->
+  <div id="section-protocols" class="section">
+    <div class="sec-title">PROTOCOL-SPECIFIC FILTERS</div>
+    <div class="sec-desc">Wireshark understands hundreds of protocols deeply. These are the protocol-specific filters every SOC analyst must know.</div>
+    <div class="table-wrap">
+      <table id="table-protocols">
+        <thead><tr><th>PROTOCOL</th><th>FILTER / FIELD</th><th>EXAMPLE</th><th>PURPOSE</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd">DNS</td>
+            <td class="filter">dns
+dns.flags.response == 0
+dns.flags.response == 1
+dns.qry.type == 1
+dns.resp.len > 512</td>
+            <td class="example">dns.qry.name == "google.com"
+dns.flags.response==0 && dns.qry.type==28</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>All DNS traffic. Queries (response=0), responses (response=1). Type 1=A, 28=AAAA, 15=MX, 16=TXT. Large TXT responses = DNS tunneling. Unusual AAAA queries = C2 beaconing.</td>
+          </tr>
+          <tr>
+            <td class="cmd">HTTP</td>
+            <td class="filter">http
+http.request
+http.response
+http.host
+http.user_agent
+http.cookie</td>
+            <td class="example">http.host contains "pastebin"
+http.user_agent contains "curl"
+http.cookie contains "session"</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>HTTP analysis. Unusual user-agents (curl, python-requests, nmap) = automated attack tools. Filter cookies for session hijacking analysis. Host filter for C2 domain detection.</td>
+          </tr>
+          <tr>
+            <td class="cmd">HTTPS/TLS</td>
+            <td class="filter">tls
+tls.handshake.type == 1
+tls.record.version
+ssl.handshake.ciphersuite
+tls.handshake.extensions_server_name</td>
+            <td class="example">tls.handshake.type == 1
+tls.handshake.extensions_server_name contains "evil"</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>TLS handshake analysis. Type 1=ClientHello. SNI (server_name extension) reveals destination domain even in encrypted traffic. JA3 fingerprinting starts with ClientHello analysis.</td>
+          </tr>
+          <tr>
+            <td class="cmd">SMB</td>
+            <td class="filter">smb
+smb2
+smb.cmd
+smb2.cmd == 5
+smb2.filename</td>
+            <td class="example">smb2.cmd == 5
+smb2.filename contains ".exe"
+smb.cmd == 0x25</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><span class="badge b-critical">CRITICAL</span><br>SMB protocol analysis. SMB2 cmd 5 = file create/read. Filter for .exe/.dll transfers = lateral movement. EternalBlue exploitation visible as malformed SMB packets.</td>
+          </tr>
+          <tr>
+            <td class="cmd">FTP</td>
+            <td class="filter">ftp
+ftp.request.command
+ftp-data
+ftp.request.command == "PASS"</td>
+            <td class="example">ftp.request.command == "USER"
+ftp.request.command == "PASS"
+ftp-data</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>FTP is cleartext — credentials visible in USER/PASS commands. ftp-data captures the actual file transfers. Follow FTP stream to see login + all transferred data in plaintext.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ICMP</td>
+            <td class="filter">icmp
+icmp.type == 8
+icmp.type == 0
+data.len > 64</td>
+            <td class="example">icmp.type == 8
+icmp && data.len > 64</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>ICMP type 8=Echo Request (ping), type 0=Echo Reply. Large ICMP payloads = ICMP tunneling (data being smuggled in ping packets). Normal ping payload is 32-64 bytes.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ARP</td>
+            <td class="filter">arp
+arp.opcode == 1
+arp.opcode == 2
+arp.duplicate-address-detected</td>
+            <td class="example">arp.opcode == 1
+arp.duplicate-address-detected</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>ARP op 1=request, op 2=reply. Wireshark flags ARP poisoning automatically with <code style="color:var(--amber)">arp.duplicate-address-detected</code>. Burst of ARP requests = ARP scanning or poisoning attack.</td>
+          </tr>
+          <tr>
+            <td class="cmd">SSH</td>
+            <td class="filter">ssh
+tcp.port == 22
+ssh.message_code</td>
+            <td class="example">tcp.port == 22 && tcp.flags.syn==1
+ssh.message_code == 50</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>SSH is encrypted — you can't see content. But you CAN see connection frequency (brute force = many SYNs to port 22), session duration, and data volume (large transfers = tunneling/exfil).</td>
+          </tr>
+          <tr>
+            <td class="cmd">DHCP</td>
+            <td class="filter">dhcp
+bootp
+dhcp.option.dhcp == 1
+dhcp.hw.mac_addr</td>
+            <td class="example">dhcp.option.dhcp == 1
+dhcp.hw.mac_addr == aa:bb:cc:dd:ee:ff</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Track IP assignments. DHCP discover (type 1) reveals MAC addresses of new devices joining network. Cross-reference with IP assignments to map device inventory and detect rogue devices.</td>
+          </tr>
+          <tr>
+            <td class="cmd">SMTP/POP3/IMAP</td>
+            <td class="filter">smtp
+pop
+imap
+smtp.req.command == "AUTH"</td>
+            <td class="example">smtp.req.command == "AUTH"
+smtp.req.parameter contains "PLAIN"</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Email protocol analysis. SMTP AUTH PLAIN = base64 encoded credentials visible in cleartext. Filter for email exfiltration — large attachments in SMTP = data theft vector.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TSHARK -->
+  <div id="section-tshark" class="section">
+    <div class="sec-title">TSHARK — COMMAND LINE WIRESHARK</div>
+    <div class="sec-desc">TShark is Wireshark's terminal-based sibling. Essential for scripting, automation, remote capture, and processing large PCAPs where the GUI would be too slow. Interviewers love asking about tshark.</div>
+    <div class="tip-box">
+      <div class="label">// GURU TIP</div>
+      In a SOC role you'll frequently SSH into a remote server and need to capture packets without a GUI. <strong style="color:var(--teal)">tshark is your answer</strong>. Know how to capture, filter, and extract fields from the command line — it shows you can work in headless environments.
+    </div>
+    <div class="table-wrap">
+      <table id="table-tshark">
+        <thead><tr><th>COMMAND</th><th>SYNTAX</th><th>EXAMPLE</th><th>PURPOSE</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd">-i (interface)</td>
+            <td class="filter">tshark -i [interface]</td>
+            <td class="example">tshark -i eth0
+tshark -i any</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Specify capture interface. <code style="color:var(--amber)">-i any</code> captures on all interfaces. Use <code style="color:var(--amber)">tshark -D</code> to list available interfaces. First thing you set in any tshark command.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-r (read file)</td>
+            <td class="filter">tshark -r [file.pcap]</td>
+            <td class="example">tshark -r capture.pcap
+tshark -r capture.pcapng</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Read and analyze an existing PCAP file. The CLI equivalent of opening a file in Wireshark. Essential for scripting automated PCAP analysis in SOC workflows.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-w (write file)</td>
+            <td class="filter">tshark -i [iface] -w [file.pcap]</td>
+            <td class="example">tshark -i eth0 -w /tmp/cap.pcap</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Write captured packets to file. Remote server capture — SSH in, run tshark -w, download the PCAP, analyze in Wireshark GUI. Standard incident response workflow.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-f (capture filter)</td>
+            <td class="filter">tshark -i [iface] -f "[BPF]"</td>
+            <td class="example">tshark -i eth0 -f "port 80"
+tshark -i eth0 -f "host 10.0.0.5"</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Apply BPF capture filter. Reduces capture size immediately at kernel level. Use when capturing on busy production servers where disk space matters.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-Y (display filter)</td>
+            <td class="filter">tshark -r [file] -Y "[filter]"</td>
+            <td class="example">tshark -r cap.pcap -Y "http"
+tshark -r cap.pcap -Y "ip.addr==1.2.3.4"</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Apply Wireshark display filter to a PCAP file. Same syntax as GUI filter bar. Combine with -T and -e to extract specific fields from filtered packets.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-T / -e (fields)</td>
+            <td class="filter">tshark -r [file] -T fields -e [field1] -e [field2]</td>
+            <td class="example">tshark -r cap.pcap -T fields -e ip.src -e ip.dst -e tcp.port
+tshark -r cap.pcap -Y "dns" -T fields -e dns.qry.name</td>
+            <td class="job"><span class="badge b-pro">PRO</span><span class="badge b-critical">CRITICAL</span><br>Extract specific protocol fields as text. Pipe to sort/uniq/grep for analysis. <strong>Extract all DNS queries: -Y "dns.flags.response==0" -T fields -e dns.qry.name</strong> — pure gold for threat hunting.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-c (packet count)</td>
+            <td class="filter">tshark -i [iface] -c [N]</td>
+            <td class="example">tshark -i eth0 -c 100
+tshark -i eth0 -c 1000 -w out.pcap</td>
+            <td class="job">Stop after capturing N packets. Quick sampling of network traffic without letting the file grow unbounded. Combine with -w to save exactly N packets.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-a duration</td>
+            <td class="filter">tshark -i [iface] -a duration:[sec] -w [file]</td>
+            <td class="example">tshark -i eth0 -a duration:60 -w cap.pcap</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Auto-stop after N seconds. Scheduled/timed captures — set a 5-minute capture window for a suspicious time period without having to manually stop it.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-b (ring buffer)</td>
+            <td class="filter">tshark -i [iface] -b filesize:[KB] -w [file]</td>
+            <td class="example">tshark -i eth0 -b filesize:10240 -b files:5 -w cap.pcap</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Ring buffer — rotate capture files at set size/time, keeping only last N files. Professional long-term monitoring without filling disk. Used in production SOC capture setups.</td>
+          </tr>
+          <tr>
+            <td class="cmd">-z statistics</td>
+            <td class="filter">tshark -r [file] -z [stat]</td>
+            <td class="example">tshark -r cap.pcap -z conv,tcp
+tshark -r cap.pcap -z http,tree
+tshark -r cap.pcap -z io,stat,1</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Generate statistics from PCAP. <code style="color:var(--amber)">conv,tcp</code> = top TCP conversations, <code style="color:var(--amber)">http,tree</code> = HTTP breakdown, <code style="color:var(--amber)">io,stat,1</code> = traffic per second. CLI equivalent of Statistics menu.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ATTACK DETECTION -->
+  <div id="section-attacks" class="section">
+    <div class="sec-title">ATTACK DETECTION FILTERS</div>
+    <div class="sec-desc">Real-world filters for detecting active attacks in packet captures. These are what SOC analysts use during threat hunting and incident response.</div>
+    <div class="interview-box">
+      <div class="label">// 🎯 INTERVIEW GOLD</div>
+      "Walk me through how you'd detect a port scan in Wireshark." Answer: <strong style="color:var(--amber)">tcp.flags.syn==1 && tcp.flags.ack==0</strong> shows all SYN packets. A large number from one source IP to many destination ports in a short timeframe = port scan. Statistics → Conversations shows top scanners immediately.
+    </div>
+    <div class="table-wrap">
+      <table id="table-attacks">
+        <thead><tr><th>ATTACK TYPE</th><th>DETECTION FILTER</th><th>EXAMPLE / INDICATOR</th><th>WHAT TO LOOK FOR</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd">Port Scan (SYN)</td>
+            <td class="filter">tcp.flags.syn==1 && tcp.flags.ack==0</td>
+            <td class="example">One src IP → many dst ports
+Many SYNs, few SYN-ACKs</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>SYN packets with no ACK = connection attempts. Single source to many ports = nmap/masscan port scan. Check Statistics → Conversations to quantify. High RST ratio confirms scan.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Nmap NULL Scan</td>
+            <td class="filter">tcp.flags == 0x000</td>
+            <td class="example">Packets with zero flags
+No SYN/ACK/FIN set</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>TCP packets with absolutely no flags set. Legitimate TCP never sends null-flag packets. Immediate indicator of nmap NULL scan (-sN) or other stealth reconnaissance.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Nmap Xmas Scan</td>
+            <td class="filter">tcp.flags == 0x029</td>
+            <td class="example">FIN+URG+PSH flags set
+0x029 = 0b00101001</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>FIN, URG, and PSH flags simultaneously = nmap Xmas scan (-sX). Never occurs in legitimate traffic. Instant detection signature for this specific evasion technique.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ARP Poisoning</td>
+            <td class="filter">arp.duplicate-address-detected
+arp.opcode==2 && eth.dst==ff:ff:ff:ff:ff:ff</td>
+            <td class="example">Same IP, different MACs
+Gratuitous ARP flood</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><span class="badge b-critical">CRITICAL</span><br>Wireshark auto-flags duplicate IP-to-MAC mappings. ARP poisoning for MITM creates multiple ARP replies claiming ownership of an IP. Also look for unsolicited gratuitous ARPs.</td>
+          </tr>
+          <tr>
+            <td class="cmd">DNS Tunneling</td>
+            <td class="filter">dns.qry.name matches "[a-z0-9]{20,}"
+dns.resp.len > 512</td>
+            <td class="example">Long random subdomains
+High volume DNS to one domain
+TXT queries with large responses</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><span class="badge b-critical">CRITICAL</span><br>DNS tunneling embeds data in DNS queries/responses. Indicators: unusually long subdomains, high-entropy names, abnormally large TXT records, excessive queries to one domain.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Brute Force</td>
+            <td class="filter">http.response.code == 401
+ftp.response.code == 530
+tcp.port==22 && tcp.flags.syn==1</td>
+            <td class="example">Many 401s same src IP
+Many failed FTP logins
+Rapid SYN to port 22</td>
+            <td class="job"><span class="badge b-soc">SOC</span><span class="badge b-critical">CRITICAL</span><br>HTTP 401, FTP 530 (login failed), repeated SSH connections = brute force. Filter + Statistics → Conversations to count attempts per source. Successful login after burst = compromise.</td>
+          </tr>
+          <tr>
+            <td class="cmd">ICMP Tunneling</td>
+            <td class="filter">icmp && data.len > 64
+icmp.type==8 && data.len > 100</td>
+            <td class="example">Ping with 500+ byte payloads
+Regular interval pings
+Non-standard ICMP data</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>Normal ping payload = 32-64 bytes. Large ICMP data payloads = data being smuggled in ping packets (ICMP tunnel tools like icmptunnel, ptunnel). Check for regular intervals = C2 beaconing.</td>
+          </tr>
+          <tr>
+            <td class="cmd">SQL Injection</td>
+            <td class="filter">http.request.uri contains "'"
+http.request.uri contains "UNION"
+http.request.uri contains "--"</td>
+            <td class="example">GET /?id=1' OR 1=1--
+UNION SELECT in URI
+Encoded %27 in requests</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>SQLi signatures in HTTP URIs. Single quotes, UNION SELECT, comment markers (--). Check for URL-encoded variants too: <code style="color:var(--amber)">http.request.uri contains "%27"</code>.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Cleartext Credentials</td>
+            <td class="filter">http.authbasic
+ftp.request.command=="PASS"
+telnet
+pop.request.command=="PASS"</td>
+            <td class="example">Authorization: Basic base64
+FTP PASS command visible
+Telnet session (all cleartext)</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><span class="badge b-forensic">FORENSIC</span><br>HTTP Basic Auth sends base64 credentials in every request. FTP, Telnet, POP3 send passwords in cleartext. Follow stream to extract. Base64 decode Authorization header for credentials.</td>
+          </tr>
+          <tr>
+            <td class="cmd">C2 Beaconing</td>
+            <td class="filter">http.request && ip.dst == [suspicious_IP]
+dns.qry.name contains [domain]
+tcp.port == 4444 || tcp.port == 8080</td>
+            <td class="example">Regular interval HTTP GET
+Same domain/IP contacted every N sec
+Metasploit default port 4444</td>
+            <td class="job"><span class="badge b-soc">SOC</span><span class="badge b-attack">ATTACK</span><br>C2 beacons show as regular interval connections to same destination. Use Statistics → IO Graph to visualize. Consistent timing = automated callback. Metasploit Meterpreter defaults to port 4444.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FORENSICS -->
+  <div id="section-forensics" class="section">
+    <div class="sec-title">FORENSICS & ANALYSIS TECHNIQUES</div>
+    <div class="sec-desc">Beyond filtering — the professional techniques for deep PCAP investigation, file extraction, credential recovery, and session reconstruction.</div>
+    <div class="table-wrap">
+      <table id="table-forensics">
+        <thead><tr><th>TECHNIQUE</th><th>HOW TO DO IT</th><th>FILTER / PATH</th><th>WHAT IT REVEALS</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd">Follow TCP Stream</td>
+            <td class="filter">Right-click packet → Follow → TCP Stream</td>
+            <td class="example">Analyze → Follow → TCP Stream
+tcp.stream == [N]</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Reconstructs the entire conversation between two endpoints. See cleartext credentials, HTTP requests/responses, FTP commands, shell sessions end-to-end. Most powerful forensic tool in Wireshark.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Follow UDP Stream</td>
+            <td class="filter">Right-click UDP packet → Follow → UDP Stream</td>
+            <td class="example">Analyze → Follow → UDP Stream
+udp.stream == [N]</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Reconstruct UDP sessions (DNS, VoIP, custom protocols). Essential for DNS tunnel analysis — follow stream to see full tunneled data content hidden in DNS queries.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Export Objects (Files)</td>
+            <td class="filter">File → Export Objects → [Protocol]</td>
+            <td class="example">File → Export Objects → HTTP
+File → Export Objects → SMB
+File → Export Objects → FTP-DATA</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><span class="badge b-forensic">FORENSIC</span><br>Extract files transferred over the network directly from PCAP. Recover malware samples, documents, images from HTTP downloads or SMB file transfers. Critical for malware analysis in forensic investigations.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Protocol Hierarchy</td>
+            <td class="filter">Statistics → Protocol Hierarchy</td>
+            <td class="example">Shows % breakdown of all protocols</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>See breakdown of every protocol in the capture by percentage and packet count. Abnormal protocol ratios reveal anomalies — unexpected DNS percentage, unknown protocols, excessive ICMP.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Conversations</td>
+            <td class="filter">Statistics → Conversations → TCP/UDP/IP tab</td>
+            <td class="example">Sort by bytes (exfil hunting)
+Sort by packets (scan detection)</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><span class="badge b-soc">SOC</span><br>Top network talkers sorted by packets or bytes. Sort by bytes to find exfiltration (huge outbound transfers). Sort by packets to find scanners. Click "Follow Stream" directly from here.</td>
+          </tr>
+          <tr>
+            <td class="cmd">IO Graph</td>
+            <td class="filter">Statistics → IO Graph</td>
+            <td class="example">Add filter: http.request
+Compare normal vs spike periods</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Visualize traffic volume over time. Add multiple filters to overlay. Spikes indicate attacks, scans, or transfers. Regular intervals = beaconing. Flatlines after normal activity = connection drop/kill.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Expert Information</td>
+            <td class="filter">Analyze → Expert Information</td>
+            <td class="example">Shows: Errors, Warnings, Notes, Chats</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Wireshark's automated anomaly detection. Flags TCP retransmissions, RST storms, malformed packets, protocol violations. First stop when opening an unfamiliar PCAP — let Wireshark tell you what's wrong.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Decode As</td>
+            <td class="filter">Right-click port → Decode As</td>
+            <td class="example">Decode port 4444 as HTTP
+Decode custom port as SMB</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Force Wireshark to interpret a protocol as something else. Malware often runs HTTP C2 on non-standard ports — decode that port as HTTP and suddenly you can read the C2 commands clearly.</td>
+          </tr>
+          <tr>
+            <td class="cmd">GeoIP / Name Resolution</td>
+            <td class="filter">Edit → Preferences → Name Resolution</td>
+            <td class="example">Enable: Resolve network addresses
+MaxMind GeoIP database</td>
+            <td class="job"><span class="badge b-forensic">FORENSIC</span><br>Resolve IPs to hostnames and geographic locations. Enable MaxMind GeoIP to see country flags on packets. Quickly identifies foreign C2 servers, CDNs, and unexpected international connections.</td>
+          </tr>
+          <tr>
+            <td class="cmd">Color Rules</td>
+            <td class="filter">View → Coloring Rules</td>
+            <td class="example">Add rule: tcp.flags.reset==1 → Red
+Add rule: dns.qry.name contains "evil" → Bright yellow</td>
+            <td class="job"><span class="badge b-pro">PRO</span><br>Create custom color rules for your investigation. Highlight all RST packets red, all connections to a suspicious IP orange. Custom coloring dramatically speeds up manual PCAP analysis.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SHORTCUTS -->
+  <div id="section-shortcuts" class="section">
+    <div class="sec-title">KEYBOARD SHORTCUTS & UI MASTERY</div>
+    <div class="sec-desc">Speed is analysis quality. Analysts who navigate Wireshark with keyboard shortcuts work 3x faster and catch things mouse-clickers miss.</div>
+    <div class="qgrid">
+      <div class="qcard">
+        <div class="qcard-title">CAPTURE CONTROL</div>
+        <div class="qi"><span class="qi-cmd">Ctrl + E</span><span class="qi-desc">Start/Stop capture</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + K</span><span class="qi-desc">Capture options</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + O</span><span class="qi-desc">Open PCAP file</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + S</span><span class="qi-desc">Save capture</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Shift + S</span><span class="qi-desc">Save As</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + W</span><span class="qi-desc">Close capture</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Q</span><span class="qi-desc">Quit Wireshark</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">NAVIGATION</div>
+        <div class="qi"><span class="qi-cmd">Ctrl + F</span><span class="qi-desc">Find packet</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + N</span><span class="qi-desc">Next found packet</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + B</span><span class="qi-desc">Previous found packet</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + G</span><span class="qi-desc">Go to packet #</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Home</span><span class="qi-desc">First packet</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + End</span><span class="qi-desc">Last packet</span></div>
+        <div class="qi"><span class="qi-cmd">Space</span><span class="qi-desc">Next packet</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">DISPLAY & VIEW</div>
+        <div class="qi"><span class="qi-cmd">Ctrl + +</span><span class="qi-desc">Zoom in</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + -</span><span class="qi-desc">Zoom out</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + =</span><span class="qi-desc">Normal size</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + R</span><span class="qi-desc">Reload file</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + .</span><span class="qi-desc">Next TCP stream</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + ,</span><span class="qi-desc">Previous TCP stream</span></div>
+        <div class="qi"><span class="qi-cmd">Alt + →/←</span><span class="qi-desc">Expand/collapse tree</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">FILTERS (POWER USER)</div>
+        <div class="qi"><span class="qi-cmd">Ctrl + /</span><span class="qi-desc">Focus filter bar</span></div>
+        <div class="qi"><span class="qi-cmd">Enter</span><span class="qi-desc">Apply filter</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Enter</span><span class="qi-desc">Apply & save filter</span></div>
+        <div class="qi"><span class="qi-cmd">Esc</span><span class="qi-desc">Clear filter</span></div>
+        <div class="qi"><span class="qi-cmd">Right-click field</span><span class="qi-desc">"Apply as filter"</span></div>
+        <div class="qi"><span class="qi-cmd">Right-click field</span><span class="qi-desc">"Prepare as filter"</span></div>
+        <div class="qi"><span class="qi-cmd">Shift + Ctrl + O</span><span class="qi-desc">Merge PCAP files</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">ANALYSIS</div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Alt + Shift + T</span><span class="qi-desc">Follow TCP stream</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Alt + Shift + U</span><span class="qi-desc">Follow UDP stream</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + M</span><span class="qi-desc">Mark packet</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + Shift + N</span><span class="qi-desc">Next marked packet</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + D</span><span class="qi-desc">Display filter expression</span></div>
+        <div class="qi"><span class="qi-cmd">Ctrl + I</span><span class="qi-desc">Capture interfaces</span></div>
+        <div class="qi"><span class="qi-cmd">F5</span><span class="qi-desc">Refresh / autoscroll</span></div>
+      </div>
+      <div class="qcard">
+        <div class="qcard-title">TSHARK ONE-LINERS</div>
+        <div class="qi"><span class="qi-cmd">tshark -D</span><span class="qi-desc">List interfaces</span></div>
+        <div class="qi"><span class="qi-cmd">tshark -r x.pcap -z conv,tcp</span><span class="qi-desc">TCP conversations</span></div>
+        <div class="qi"><span class="qi-cmd">tshark -r x.pcap -Y "dns" -T fields -e dns.qry.name</span><span class="qi-desc">All DNS queries</span></div>
+        <div class="qi"><span class="qi-cmd">tshark -r x.pcap -Y "http.request" -T fields -e http.host -e http.request.uri</span><span class="qi-desc">All HTTP requests</span></div>
+        <div class="qi"><span class="qi-cmd">tshark -r x.pcap -Y "ftp.request.command==PASS" -T fields -e ftp.request.arg</span><span class="qi-desc">FTP passwords</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERVIEW -->
+  <div id="section-interview" class="section">
+    <div class="sec-title">🎯 INTERVIEW SCENARIOS</div>
+    <div class="sec-desc">Real questions and answers from SOC analyst, blue team, and DFIR interviews. Know the WHY behind every filter, not just the syntax.</div>
+
+    <div class="table-wrap">
+      <table id="table-interview">
+        <thead><tr><th>INTERVIEW QUESTION</th><th>YOUR FILTER / COMMAND</th><th>WHY THIS IS THE RIGHT ANSWER</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"How do you detect a port scan in a PCAP?"</td>
+            <td class="filter">tcp.flags.syn==1 && tcp.flags.ack==0
+Then: Statistics → Conversations → sort by packets</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>SYN with no ACK = connection attempt with no response. One source IP to many destination ports = scan. Conversations view shows you the scanner immediately by packet count. Mention RST ratio confirming closed ports.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"What's the difference between capture and display filters?"</td>
+            <td class="filter">Capture: BPF syntax → host, port, net
+Display: Wireshark syntax → ip.addr, tcp.port, http</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Capture filters run in kernel before packets reach Wireshark — can't be changed mid-capture, very fast. Display filters are post-capture, can be changed anytime, use protocol-aware field names. Different syntax entirely.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"How would you extract credentials from a PCAP?"</td>
+            <td class="filter">http.authbasic → decode base64
+ftp.request.command == "PASS"
+frame contains "password"
+Follow TCP Stream on cleartext sessions</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>HTTP Basic Auth = base64 in header (decode it). FTP/Telnet/POP3 = plaintext. Frame contains for keyword hunting. Follow TCP Stream on interesting sessions. Mention that HTTPS requires decryption key to read.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"Malware is suspected on a host. How do you analyze its network traffic?"</td>
+            <td class="filter">1. ip.addr == [host_IP]
+2. Statistics → Protocol Hierarchy
+3. Statistics → Conversations → sort by bytes
+4. Look for: beaconing intervals, unusual ports, DNS tunneling, C2 patterns</td>
+            <td class="job"><span class="badge b-soc">SOC</span><span class="badge b-critical">CRITICAL</span><br>Start broad with the host IP, then Protocol Hierarchy shows unexpected protocols. Conversations finds external IPs the host talks to. IO Graph visualizes beaconing intervals. This systematic approach shows methodology, not just syntax knowledge.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"How do you find data exfiltration in Wireshark?"</td>
+            <td class="filter">Statistics → Conversations → TCP → sort by Bytes B→A
+ip.src == [internal_host] && tcp.len > 1000
+File → Export Objects → HTTP/SMB</td>
+            <td class="job"><span class="badge b-soc">SOC</span><br>Sort conversations by outbound bytes — exfiltration shows as unusually large transfers to external IPs. Large payload filter eliminates ACK noise. Export Objects reveals what files were sent. DNS exfil: filter for large DNS responses.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"How would you detect ARP poisoning / MITM?"</td>
+            <td class="filter">arp.duplicate-address-detected
+arp.opcode == 2</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><span class="badge b-critical">CRITICAL</span><br>Wireshark auto-flags this. ARP poisoning = multiple ARP reply packets claiming the same IP belongs to different MACs. The poisoner broadcasts ARP replies for the gateway IP pointing to their MAC. Wireshark colors these and adds expert warnings.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"How do you investigate a suspected web attack?"</td>
+            <td class="filter">http.request.method == "POST"
+http.response.code >= 400
+http.request.uri contains "'" or "UNION" or "cmd="
+Statistics → HTTP → Requests</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><br>Start with HTTP requests. Filter POST (data submission). Filter 4xx responses (errors = scanning/probing). Check URI for injection signatures. HTTP → Requests shows all URLs hit — scanning pattern obvious from sequential URLs.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"How do you capture packets on a remote server without a GUI?"</td>
+            <td class="filter">tshark -i eth0 -w /tmp/capture.pcap -a duration:60
+# Then SCP the file and open in Wireshark GUI</td>
+            <td class="job"><span class="badge b-pro">PRO</span><span class="badge b-critical">CRITICAL</span><br>tshark is the headless answer. SSH in, run tshark with -w to write to file, set -a duration to auto-stop, SCP the PCAP back, analyze in GUI. This shows you understand real-world SOC workflows beyond lab environments.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"What is DNS tunneling and how do you detect it?"</td>
+            <td class="filter">dns.qry.name matches "[a-z0-9]{20,}"
+dns.resp.len > 512
+tshark -T fields -e dns.qry.name | sort | uniq -c | sort -rn</td>
+            <td class="job"><span class="badge b-attack">ATTACK</span><span class="badge b-soc">SOC</span><br>DNS tunneling encodes data as subdomain labels — <code style="color:var(--amber)">dGhpcyBpcyBkYXRh.evil.com</code>. Indicators: high-entropy long subdomains, excessive queries to one domain, large TXT responses. The tshark one-liner extracts all queries for offline frequency analysis.</td>
+          </tr>
+          <tr>
+            <td class="cmd" style="white-space:normal;font-size:12px;">"Name 3 things you check first when opening an unknown PCAP"</td>
+            <td class="filter">1. Analyze → Expert Information
+2. Statistics → Protocol Hierarchy  
+3. Statistics → Conversations → sort by bytes</td>
+            <td class="job"><span class="badge b-critical">CRITICAL</span><br>Expert Information = Wireshark's own anomaly flags (errors, warnings). Protocol Hierarchy = what protocols are present (anything unexpected?). Conversations = who's talking to whom and how much data. This triage approach in under 60 seconds shows investigative maturity.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tip-box">
+      <div class="label">// GURU — THE COMPLETE INVESTIGATION WORKFLOW</div>
+      When given a PCAP in an interview or on-the-job: <strong style="color:var(--teal)">1)</strong> Expert Information for auto-flagged anomalies → <strong style="color:var(--teal)">2)</strong> Protocol Hierarchy for overview → <strong style="color:var(--teal)}>3)</strong> Conversations sorted by bytes for top talkers → <strong style="color:var(--teal)">4)</strong> Filter to suspicious IPs/ports → <strong style="color:var(--teal)">5)</strong> Follow TCP Streams on interesting sessions → <strong style="color:var(--teal)">6)</strong> Export Objects for file extraction → <strong style="color:var(--teal)">7)</strong> tshark for automated IOC extraction. That's the complete methodology.
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>WIRESHARK</span> GOD LEVEL CHEATSHEET — SOC · DFIR · PENTEST · BLUE TEAM
+  <span style="color:var(--muted)">// PACKET ANALYSIS MASTERY</span>
+</footer>
+
+<script>
+  function showTab(name, el) {
+    document.querySelectorAll('.section').forEach(s => { s.classList.remove('active'); s.style.display = ''; });
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    el.classList.add('active');
+    document.getElementById('searchInput').value = '';
+    document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('hidden'));
+  }
+
+  function filterAll() {
+    const val = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (!val) {
+      document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('hidden'));
+      return;
+    }
+    document.querySelectorAll('.section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('tbody tr').forEach(row => {
+      if (row.textContent.toLowerCase().includes(val)) {
+        row.classList.remove('hidden');
+        const sec = row.closest('.section');
+        if (sec) { sec.style.display = 'block'; sec.classList.add('active'); }
+      } else {
+        row.classList.add('hidden');
+      }
+    });
+  }
+</script>
+</body>
+</html>
