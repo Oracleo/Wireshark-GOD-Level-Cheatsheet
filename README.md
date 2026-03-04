@@ -40,6 +40,8 @@ A **single-file, fully interactive Wireshark cheatsheet** for cybersecurity prof
 | Display Filters | Attack Detection | Interview Scenarios |
 |:---:|:---:|:---:|
 | Protocol-aware field syntax | Real-world attack signatures | 10 investigative walkthroughs |
+
+[![Live Demo](https://img.shields.io/badge/🚀_LIVE_DEMO-View_Cheatsheet-14e8c8?style=for-the-badge&labelColor=03080f)](https://oracleo.github.io/Wireshark-GOD-Level-Cheatsheet/Wireshark-GOD-Level-Cheatsheet.html)
 <img width="1350" height="611" alt="image" src="https://github.com/user-attachments/assets/83af82b9-6dc7-46f8-9394-d44b00a4e5b7" />
 
 </div>
